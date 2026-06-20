@@ -8,6 +8,8 @@ Place `NarksharLauncher.exe` in the same folder as `Wow.exe`, run it, let it upd
 
 The launcher installs the files listed in `manifest.json` from `client/` into the WoW client folder.
 
+Download the latest `NarksharLauncher.exe` from this repo's GitHub Releases page.
+
 ## Managed payload
 
 - `client/Data/`
