@@ -1,0 +1,15 @@
+## Interface: 30300
+## Title: Chumbaddon
+## Notes: Utility features for 3.3.5 client tweaks
+MultiClass.lua
+BareNecessities.lua
+SpellRunes.lua
+IconOverrides.lua
+BossLevels.lua
+TooltipText.lua
+SubclassPicker.lua
+ComboPoints.lua
+SubclassSpellbook.lua
+SubclassTalents.lua
+CustomClassName.lua
+Chumbaddon.lua

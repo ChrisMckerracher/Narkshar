@@ -1,0 +1,6 @@
+## Interface: 30300
+## Title: Keepers of the Storm
+## Notes: Client-side encounter UI helpers for Keepers of the Storm.
+## Author: playerbots-wow
+
+KeepersOfTheStorm.lua

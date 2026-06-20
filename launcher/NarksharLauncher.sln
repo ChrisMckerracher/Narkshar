@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NarksharLauncher", "src\NarksharLauncher\NarksharLauncher.csproj", "{2FBEA3D8-2B61-4D82-A439-DA4018F5D6B4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NarksharLauncher.Core", "src\NarksharLauncher.Core\NarksharLauncher.Core.csproj", "{9E3A23B5-8567-4318-9CF2-F3D71F84E11F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NarksharLauncher.Tests", "tests\NarksharLauncher.Tests\NarksharLauncher.Tests.csproj", "{0250327A-468B-4C4B-B8D7-4A5EA98D40A1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2FBEA3D8-2B61-4D82-A439-DA4018F5D6B4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2FBEA3D8-2B61-4D82-A439-DA4018F5D6B4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2FBEA3D8-2B61-4D82-A439-DA4018F5D6B4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2FBEA3D8-2B61-4D82-A439-DA4018F5D6B4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E3A23B5-8567-4318-9CF2-F3D71F84E11F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E3A23B5-8567-4318-9CF2-F3D71F84E11F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E3A23B5-8567-4318-9CF2-F3D71F84E11F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E3A23B5-8567-4318-9CF2-F3D71F84E11F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0250327A-468B-4C4B-B8D7-4A5EA98D40A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0250327A-468B-4C4B-B8D7-4A5EA98D40A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0250327A-468B-4C4B-B8D7-4A5EA98D40A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0250327A-468B-4C4B-B8D7-4A5EA98D40A1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

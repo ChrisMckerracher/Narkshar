@@ -1,0 +1,31 @@
+{
+  "version": "20260620015634",
+  "files": [
+    { "path": "client/Data/Patch-A.MPQ", "size": 26685, "sha256": "b0d920ea5a8a7c2d592328d8bc64c5d4aa43c06efe0a92318312165d3608d305" },
+    { "path": "client/Data/Patch-H.MPQ", "size": 341419, "sha256": "dccea14dcb619018df3268ff914938621ec4fdb47444959ca48a30928373029a" },
+    { "path": "client/Data/patch-V.mpq", "size": 8638394, "sha256": "90817ce5b586e1720b539c4552e5470096d570f2a5c89d0ae35cfd585a133fc6" },
+    { "path": "client/Data/patch-Z.mpq", "size": 1477125, "sha256": "aaafbd2c5b1985e6d06cdf25ce67115ed3f7ddc59da48f46d4520e79ba5be71b" },
+    { "path": "client/Interface/AddOns/Chumbaddon/Agent.md", "size": 4475, "sha256": "162195c3829d8ef5bf68da543a36906c8ccbae6b4176f07915bd6d033f054dfa" },
+    { "path": "client/Interface/AddOns/Chumbaddon/BareNecessities.lua", "size": 8865, "sha256": "ac717b84b913f6ef0f543c2cb0c3a67c4a3afbd93fe3ca48bb025c2eaa8e4e8c" },
+    { "path": "client/Interface/AddOns/Chumbaddon/BossLevels.lua", "size": 8804, "sha256": "7fe9b58c55b8aa772dd3ea0266b1c723ab9ee60602985f3ebeeec0c45ba3a469" },
+    { "path": "client/Interface/AddOns/Chumbaddon/Canary.lua", "size": 45, "sha256": "b85a0f4f4f6c0d49170cd4b3b915f444973f950b4bf68af4f6df1245135dad8f" },
+    { "path": "client/Interface/AddOns/Chumbaddon/Chumbaddon.lua", "size": 3624, "sha256": "d770c1af8975104f5fbcc9822b4619710e3adbf2e8ad66a69f3db62cfcfc6d17" },
+    { "path": "client/Interface/AddOns/Chumbaddon/Chumbaddon.toc", "size": 303, "sha256": "6fe11ba4ddcd5407c76713f9bfaf0769af722db458c8e279bade351d7c93a16a" },
+    { "path": "client/Interface/AddOns/Chumbaddon/ComboPoints.lua", "size": 10395, "sha256": "62002f3edebcea2b24bd6e4b7c48cc00a30836583922fcb8a72e846c7257e786" },
+    { "path": "client/Interface/AddOns/Chumbaddon/CustomClassName.lua", "size": 11196, "sha256": "c92b7ee838ce34de1cb15cb1c86a257758b67c4af3bd047808a676a975d54d64" },
+    { "path": "client/Interface/AddOns/Chumbaddon/DebugBar.lua", "size": 1542, "sha256": "873c7514bf8462881dd0b9d5edcd567d14b3bcefab0a136c1a5eb8637c37f944" },
+    { "path": "client/Interface/AddOns/Chumbaddon/IconOverrides.lua", "size": 4409, "sha256": "af4233393c9a18ec5fac66f94d31aa272f43c6987012b638712acd0728887c34" },
+    { "path": "client/Interface/AddOns/Chumbaddon/MultiClass.lua", "size": 4823, "sha256": "2a5d71814f3f4c20ff310d6932e6d4fca771bde64b5e7975a3f655e366f77db8" },
+    { "path": "client/Interface/AddOns/Chumbaddon/SpellRunes.lua", "size": 18799, "sha256": "f67c5bfdf11120207eb378ca7262856fa9af4de1a13b0a720c91a501cdd05305" },
+    { "path": "client/Interface/AddOns/Chumbaddon/SubclassPicker.lua", "size": 10013, "sha256": "7f561fc3214fe5906f1a4ae0519925c3e8b43e00c67f6668cfd4710ad5bcbff1" },
+    { "path": "client/Interface/AddOns/Chumbaddon/SubclassSpellbook.lua", "size": 32109, "sha256": "87a489bbc92d951e804b3eb365fcc2d62b2af0de7635c916c9ee571aa47e353f" },
+    { "path": "client/Interface/AddOns/Chumbaddon/SubclassTalents.lua", "size": 40468, "sha256": "b0c0e945fc9d2efdb75cf2748ad51b50648fb1209186387036529a5da884569b" },
+    { "path": "client/Interface/AddOns/Chumbaddon/Tinkerer.md", "size": 2533, "sha256": "0e08b10e34d3ce4f5fad9e04a1594ef9a9f402e71db9579f20d73f91f6a36948" },
+    { "path": "client/Interface/AddOns/Chumbaddon/TooltipText.lua", "size": 2931, "sha256": "97b49c759118b775c10c92d6838c13d696a1f2058e192fdcfdd2794a9927624d" },
+    { "path": "client/Interface/AddOns/HideVendorPrice/HideVendorPrice.lua", "size": 669, "sha256": "8b2f5b2bcf431da5eed4f2f131fe1afd5931fc3a884e72b87c11a0b617d3efc0" },
+    { "path": "client/Interface/AddOns/HideVendorPrice/HideVendorPrice.toc", "size": 40, "sha256": "0ceaa8f359aca33d16bb141185f2070e75c78e1d4eddcd26af860616ce5a3218" },
+    { "path": "client/Interface/AddOns/KeepersOfTheStorm/KeepersOfTheStorm.lua", "size": 4965, "sha256": "03068df1d85bfb327561eab42dcb1eb6b75669e37318feb41b7bd85660accd9e" },
+    { "path": "client/Interface/AddOns/KeepersOfTheStorm/KeepersOfTheStorm.toc", "size": 169, "sha256": "a44fe9c4c7f34bd1a48fa62bbc099ace5794fe7d70299c07f2fa3a846fd40ae5" },
+    { "path": "client/Interface/AddOns/KeepersOfTheStorm/README.md", "size": 767, "sha256": "99b28ef99070d0ce69ba897f601f138414c4da90f676ed1076e6a4e5d9b434aa" }
+  ]
+}
