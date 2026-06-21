@@ -4,3 +4,5 @@
 *.jpg binary
 *.jpeg binary
 *.zip binary
+client/Data/*.MPQ filter=lfs diff=lfs merge=lfs -text
+client/Data/*.mpq filter=lfs diff=lfs merge=lfs -text
