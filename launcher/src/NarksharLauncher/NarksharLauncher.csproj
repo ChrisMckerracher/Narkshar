@@ -11,4 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="../NarksharLauncher.Core/NarksharLauncher.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/narkshar-hero.png" />
+  </ItemGroup>
 </Project>

@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.IO.Compression;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -7,18 +7,39 @@ namespace NarksharLauncher;
 
 public sealed class NarksharUpdater
 {
-    private const string AssetsZipUrl = "https://github.com/ChrisMckerracher/Narkshar/archive/refs/heads/main.zip";
+    private const string DefaultAssetBaseUrl = "https://narkshar-client-assets.s3.us-east-1.amazonaws.com/";
+    private const string ManifestPath = "client/manifest.json";
+    private const string ClientPrefix = "client/";
+    private const string LauncherManifestPath = "client/NarksharLauncher.exe";
+    private const string StagedLauncherFileName = "NarksharLauncher.new.exe";
+
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
+    private static readonly HashSet<string> ProtectedStalePaths = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "client/Wow.exe",
+        LauncherManifestPath
+    };
 
     private readonly string _wowRoot;
     private readonly string _stateDir;
     private readonly string _installedManifestPath;
+    private readonly string _downloadDir;
+    private readonly HttpClient _http;
+    private readonly Uri _assetBaseUri;
 
     public NarksharUpdater(string wowRoot)
+        : this(wowRoot, new HttpClient(), ResolveDefaultAssetBaseUri(wowRoot))
+    {
+    }
+
+    public NarksharUpdater(string wowRoot, HttpClient http, Uri assetBaseUri)
     {
         _wowRoot = Path.GetFullPath(wowRoot);
         _stateDir = Path.Combine(_wowRoot, ".narkshar");
         _installedManifestPath = Path.Combine(_stateDir, "installed-manifest.json");
+        _downloadDir = Path.Combine(_stateDir, "downloads");
+        _http = http;
+        _assetBaseUri = assetBaseUri;
     }
 
     public bool HasWowExe => File.Exists(Path.Combine(_wowRoot, "Wow.exe"));
@@ -30,44 +51,50 @@ public sealed class NarksharUpdater
             return new UpdateResult { CanPlay = false, Message = "Put this launcher beside Wow.exe." };
         }
 
-        var tempRoot = Path.Combine(Path.GetTempPath(), "NarksharLauncher", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(tempRoot);
-
         try
         {
-            progress.Report(new UpdateProgress { Message = "Downloading Narkshar assets...", Percent = 5 });
-            var zipPath = Path.Combine(tempRoot, "narkshar-main.zip");
-            await DownloadAsync(zipPath, cancellationToken);
+            progress.Report(new UpdateProgress { Message = "Downloading Narkshar manifest...", Percent = 5 });
+            var manifest = await DownloadManifestAsync(cancellationToken);
 
-            progress.Report(new UpdateProgress { Message = "Extracting assets...", Percent = 25 });
-            var extractRoot = Path.Combine(tempRoot, "extract");
-            ZipFile.ExtractToDirectory(zipPath, extractRoot);
-
-            var repoRoot = FindExtractedRepoRoot(extractRoot);
-            var manifest = await ReadManifestAsync(Path.Combine(repoRoot, "manifest.json"), cancellationToken);
-
-            progress.Report(new UpdateProgress { Message = "Removing stale managed files...", Percent = 35 });
+            progress.Report(new UpdateProgress { Message = "Removing stale managed files...", Percent = 15 });
             await RemoveStaleManagedFilesAsync(manifest, cancellationToken);
 
             var total = Math.Max(1, manifest.Files.Count);
+            var downloaded = 0;
+            var stagedLauncher = false;
             for (var i = 0; i < manifest.Files.Count; i++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var file = manifest.Files[i];
-                var percent = 35 + (int)Math.Round((i + 1) * 55.0 / total);
-                progress.Report(new UpdateProgress { Message = $"Installing {file.Path}", Percent = percent });
-                await InstallFileAsync(repoRoot, file, cancellationToken);
+                var percent = 15 + (int)Math.Round((i + 1) * 75.0 / total);
+                if (await LocalFileMatchesAsync(file, cancellationToken))
+                {
+                    stagedLauncher |= IsLauncherPath(file.Path) && await StagedLauncherMatchesAsync(file, cancellationToken);
+                    progress.Report(new UpdateProgress { Message = $"Current {file.Path}", Percent = percent });
+                    continue;
+                }
+
+                progress.Report(new UpdateProgress { Message = $"Downloading {file.Path}", Percent = percent });
+                var result = await DownloadAndInstallFileAsync(file, cancellationToken);
+                downloaded++;
+                stagedLauncher |= result == InstallResult.StagedLauncher;
             }
 
             progress.Report(new UpdateProgress { Message = "Saving install state...", Percent = 95 });
             Directory.CreateDirectory(_stateDir);
             await File.WriteAllTextAsync(_installedManifestPath, JsonSerializer.Serialize(manifest, JsonOptions), cancellationToken);
 
+            var message = stagedLauncher
+                ? $"Narkshar assets current ({manifest.Version}). Launcher update staged as {StagedLauncherFileName}; close this launcher and run that file to update."
+                : downloaded == 0
+                    ? $"Narkshar assets already current ({manifest.Version})."
+                    : $"Narkshar assets current ({manifest.Version}).";
+
             return new UpdateResult
             {
                 Updated = true,
                 CanPlay = true,
-                Message = $"Narkshar assets current ({manifest.Version})."
+                Message = message
             };
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
@@ -78,10 +105,6 @@ public sealed class NarksharUpdater
                 CanPlay = true,
                 Message = $"Update failed. You can play with existing files. {ex.Message}"
             };
-        }
-        finally
-        {
-            TryDeleteDirectory(tempRoot);
         }
     }
 
@@ -97,24 +120,20 @@ public sealed class NarksharUpdater
         Process.Start(info);
     }
 
-    private static async Task DownloadAsync(string zipPath, CancellationToken cancellationToken)
+    private async Task<AssetManifest> DownloadManifestAsync(CancellationToken cancellationToken)
     {
-        using var http = new HttpClient();
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("NarksharLauncher/1.0");
-        await using var remote = await http.GetStreamAsync(AssetsZipUrl, cancellationToken);
-        await using var local = File.Create(zipPath);
-        await remote.CopyToAsync(local, cancellationToken);
-    }
+        using var response = await _http.GetAsync(BuildAssetUri(ManifestPath), cancellationToken);
+        response.EnsureSuccessStatusCode();
 
-    private static string FindExtractedRepoRoot(string extractRoot)
-    {
-        var manifest = Directory.EnumerateFiles(extractRoot, "manifest.json", SearchOption.AllDirectories).FirstOrDefault();
-        if (manifest is null)
+        await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken);
+        var manifest = await JsonSerializer.DeserializeAsync<AssetManifest>(stream, cancellationToken: cancellationToken);
+        if (manifest is null || manifest.Files.Count == 0)
         {
-            throw new InvalidOperationException("Downloaded archive did not contain manifest.json.");
+            throw new InvalidOperationException("Downloaded manifest is empty.");
         }
 
-        return Path.GetDirectoryName(manifest) ?? throw new InvalidOperationException("Invalid manifest path.");
+        ValidateManifest(manifest);
+        return manifest;
     }
 
     private static async Task<AssetManifest> ReadManifestAsync(string manifestPath, CancellationToken cancellationToken)
@@ -126,12 +145,20 @@ public sealed class NarksharUpdater
             throw new InvalidOperationException("Downloaded manifest is empty.");
         }
 
+        ValidateManifest(manifest);
+        return manifest;
+    }
+
+    private static void ValidateManifest(AssetManifest manifest)
+    {
         foreach (var file in manifest.Files)
         {
-            ValidateManifestPath(file.Path);
+            var normalized = NormalizeManifestPath(file.Path);
+            if (!normalized.StartsWith(ClientPrefix, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException($"Managed path must start with client/: {file.Path}");
+            }
         }
-
-        return manifest;
     }
 
     private async Task RemoveStaleManagedFilesAsync(AssetManifest newManifest, CancellationToken cancellationToken)
@@ -147,7 +174,7 @@ public sealed class NarksharUpdater
         foreach (var oldFile in oldManifest.Files)
         {
             var normalized = NormalizeManifestPath(oldFile.Path);
-            if (newPaths.Contains(normalized))
+            if (newPaths.Contains(normalized) || ProtectedStalePaths.Contains(normalized))
             {
                 continue;
             }
@@ -161,47 +188,124 @@ public sealed class NarksharUpdater
         }
     }
 
-    private async Task InstallFileAsync(string repoRoot, AssetFile file, CancellationToken cancellationToken)
+    private async Task<bool> LocalFileMatchesAsync(AssetFile file, CancellationToken cancellationToken)
     {
-        var source = ResolveUnderRoot(repoRoot, file.Path);
-        if (!File.Exists(source))
+        var destination = GetVerificationDestination(file.Path);
+        if (!File.Exists(destination))
         {
-            throw new FileNotFoundException("Manifest file missing from archive.", file.Path);
+            return false;
         }
 
-        var sourceInfo = new FileInfo(source);
-        if (sourceInfo.Length != file.Size)
+        var destinationInfo = new FileInfo(destination);
+        if (destinationInfo.Length != file.Size)
+        {
+            return false;
+        }
+
+        var destinationHash = await Sha256Async(destination, cancellationToken);
+        return destinationHash.Equals(file.Sha256, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task<bool> StagedLauncherMatchesAsync(AssetFile file, CancellationToken cancellationToken)
+    {
+        if (!IsLauncherPath(file.Path))
+        {
+            return false;
+        }
+
+        var currentLauncher = ResolveClientDestination(file.Path);
+        if (File.Exists(currentLauncher))
+        {
+            var currentInfo = new FileInfo(currentLauncher);
+            if (currentInfo.Length == file.Size)
+            {
+                var currentHash = await Sha256Async(currentLauncher, cancellationToken);
+                if (currentHash.Equals(file.Sha256, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false;
+                }
+            }
+        }
+
+        var stagedLauncher = Path.Combine(_wowRoot, StagedLauncherFileName);
+        if (!File.Exists(stagedLauncher))
+        {
+            return false;
+        }
+
+        var stagedInfo = new FileInfo(stagedLauncher);
+        if (stagedInfo.Length != file.Size)
+        {
+            return false;
+        }
+
+        var stagedHash = await Sha256Async(stagedLauncher, cancellationToken);
+        return stagedHash.Equals(file.Sha256, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private async Task<InstallResult> DownloadAndInstallFileAsync(AssetFile file, CancellationToken cancellationToken)
+    {
+        Directory.CreateDirectory(_downloadDir);
+        var staged = Path.Combine(_downloadDir, HashFileName(file.Path));
+
+        using (var response = await _http.GetAsync(BuildAssetUri(file.Path), cancellationToken))
+        {
+            response.EnsureSuccessStatusCode();
+            await using var remote = await response.Content.ReadAsStreamAsync(cancellationToken);
+            await using var local = File.Create(staged);
+            await remote.CopyToAsync(local, cancellationToken);
+        }
+
+        var stagedInfo = new FileInfo(staged);
+        if (stagedInfo.Length != file.Size)
         {
             throw new InvalidOperationException($"Size mismatch for {file.Path}.");
         }
 
-        var sourceHash = await Sha256Async(source, cancellationToken);
-        if (!sourceHash.Equals(file.Sha256, StringComparison.OrdinalIgnoreCase))
+        var stagedHash = await Sha256Async(staged, cancellationToken);
+        if (!stagedHash.Equals(file.Sha256, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException($"Hash mismatch for {file.Path}.");
         }
 
-        var destination = ResolveClientDestination(file.Path);
+        var destination = ResolveInstallDestination(file.Path);
         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
-        File.Copy(source, destination, overwrite: true);
+        File.Move(staged, destination, overwrite: true);
 
-        var destinationHash = await Sha256Async(destination, cancellationToken);
-        if (!destinationHash.Equals(file.Sha256, StringComparison.OrdinalIgnoreCase))
+        if (!await LocalFileMatchesAsync(file, cancellationToken))
         {
             throw new InvalidOperationException($"Installed file verification failed for {file.Path}.");
         }
+
+        return IsLauncherPath(file.Path) ? InstallResult.StagedLauncher : InstallResult.Installed;
+    }
+
+    private string GetVerificationDestination(string manifestPath)
+    {
+        var destination = ResolveClientDestination(manifestPath);
+        if (!IsLauncherPath(manifestPath))
+        {
+            return destination;
+        }
+
+        var stagedLauncher = Path.Combine(_wowRoot, StagedLauncherFileName);
+        return File.Exists(stagedLauncher) ? stagedLauncher : destination;
+    }
+
+    private string ResolveInstallDestination(string manifestPath)
+    {
+        if (IsLauncherPath(manifestPath))
+        {
+            return ResolveUnderRoot(_wowRoot, StagedLauncherFileName);
+        }
+
+        return ResolveClientDestination(manifestPath);
     }
 
     private string ResolveClientDestination(string manifestPath)
     {
         var normalized = NormalizeManifestPath(manifestPath);
-        const string clientPrefix = "client/";
-        if (!normalized.StartsWith(clientPrefix, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException($"Managed path must start with client/: {manifestPath}");
-        }
-
-        return ResolveUnderRoot(_wowRoot, normalized[clientPrefix.Length..]);
+        return ResolveUnderRoot(_wowRoot, normalized[ClientPrefix.Length..]);
     }
 
     private static string ResolveUnderRoot(string root, string relativePath)
@@ -234,6 +338,55 @@ public sealed class NarksharUpdater
         return path.Replace('\\', '/');
     }
 
+    private Uri BuildAssetUri(string manifestPath)
+    {
+        return new Uri(_assetBaseUri, NormalizeManifestPath(manifestPath));
+    }
+
+    private static bool IsLauncherPath(string manifestPath)
+    {
+        return NormalizeManifestPath(manifestPath).Equals(LauncherManifestPath, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string HashFileName(string manifestPath)
+    {
+        var bytes = SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(NormalizeManifestPath(manifestPath)));
+        return Convert.ToHexString(bytes).ToLowerInvariant() + ".download";
+    }
+
+    private static Uri ResolveDefaultAssetBaseUri(string wowRoot)
+    {
+        var configured = Environment.GetEnvironmentVariable("NARKSHAR_ASSET_BASE_URL");
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            var sidecar = Path.Combine(Path.GetFullPath(wowRoot), "NarksharLauncher.url");
+            if (File.Exists(sidecar))
+            {
+                configured = File.ReadAllText(sidecar).Trim();
+            }
+        }
+
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            configured = typeof(NarksharUpdater).Assembly
+                .GetCustomAttributes<AssemblyMetadataAttribute>()
+                .FirstOrDefault(attribute => attribute.Key == "NarksharAssetBaseUrl")
+                ?.Value;
+        }
+
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            configured = DefaultAssetBaseUrl;
+        }
+
+        if (!configured.EndsWith("/", StringComparison.Ordinal))
+        {
+            configured += "/";
+        }
+
+        return new Uri(configured, UriKind.Absolute);
+    }
+
     private static async Task<string> Sha256Async(string path, CancellationToken cancellationToken)
     {
         await using var stream = File.OpenRead(path);
@@ -255,18 +408,9 @@ public sealed class NarksharUpdater
         }
     }
 
-    private static void TryDeleteDirectory(string directory)
+    private enum InstallResult
     {
-        try
-        {
-            if (Directory.Exists(directory))
-            {
-                Directory.Delete(directory, recursive: true);
-            }
-        }
-        catch
-        {
-            // Temp cleanup failure should not block playing.
-        }
+        Installed,
+        StagedLauncher
     }
 }

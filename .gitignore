@@ -7,3 +7,8 @@ TestResults/
 *.tmp
 *.log
 launcher/publish/
+client/Data/*.MPQ
+client/Data/*.mpq
+client/manifest.json
+client/Wow.exe
+client/NarksharLauncher*.exe

@@ -4,5 +4,12 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>NarksharLauncher.Core</AssemblyName>
+    <NarksharAssetBaseUrl Condition="'$(NarksharAssetBaseUrl)' == ''">https://narkshar-client-assets.s3.us-east-1.amazonaws.com/</NarksharAssetBaseUrl>
   </PropertyGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>NarksharAssetBaseUrl</_Parameter1>
+      <_Parameter2>$(NarksharAssetBaseUrl)</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>

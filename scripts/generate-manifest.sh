@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLIENT_DIR="$ROOT_DIR/client"
-MANIFEST="$ROOT_DIR/manifest.json"
+MANIFEST="$CLIENT_DIR/manifest.json"
 VERSION="${1:-$(date -u +%Y%m%d%H%M%S)}"
 
 tmp="$(mktemp)"
@@ -26,7 +26,7 @@ trap 'rm -f "$tmp"' EXIT
     first=0
 
     printf '    { "path": "%s", "size": %s, "sha256": "%s" }' "$rel" "$size" "$sha"
-  done < <(find "$CLIENT_DIR" -type f -print0 | sort -z)
+  done < <(find "$CLIENT_DIR" -type f ! -path "$MANIFEST" -print0 | sort -z)
 
   printf '\n'
   printf '  ]\n'
