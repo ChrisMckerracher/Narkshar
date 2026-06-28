@@ -72,7 +72,7 @@ function SpellRunes:new()
     ["Tuffscale's Brain"] = 910244,
     ["Churrlugggg's Whistle"] = 910245,
     ["Murbean's Bare Wrists"] = 910246,
-    ["Glugglug's Moaning Rifle"] = 910247,
+    ["Glugglug's Rifle of Delusion"] = 910247,
     ["Funnyfish's Rigor Mortis Finger"] = 910248,
     ["Half Eaten Fishing Hat"] = 910249,
     ["Right Hand of VanCleef"] = 910250,
