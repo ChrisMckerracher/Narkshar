@@ -22,6 +22,37 @@ end
 -- Create our triple bar container exactly where the original sat
 local container
 local manaBar, energyBar, rageBar
+local runeFrameHooked = false
+local DK_RUNE_FRAME_BOTTOM_OFFSET = -20
+
+local function IsDeathKnight()
+    local _, classToken = UnitClass("player")
+    return classToken == "DEATHKNIGHT"
+end
+
+local function LayoutContainer()
+    if not container or not PlayerFrameManaBar then
+        return
+    end
+
+    container:ClearAllPoints()
+    if IsDeathKnight() and RuneFrame then
+        container:SetPoint("TOPLEFT", RuneFrame, "BOTTOMLEFT", 0, DK_RUNE_FRAME_BOTTOM_OFFSET)
+        container:SetPoint("TOPRIGHT", RuneFrame, "BOTTOMRIGHT", 0, DK_RUNE_FRAME_BOTTOM_OFFSET)
+    else
+        container:SetPoint("TOPLEFT", PlayerFrameManaBar, "TOPLEFT", 0, 0)
+        container:SetPoint("TOPRIGHT", PlayerFrameManaBar, "TOPRIGHT", 0, 0)
+    end
+end
+
+local function HookRuneFrame()
+    if runeFrameHooked or not RuneFrame then
+        return
+    end
+
+    hooksecurefunc(RuneFrame, "SetPoint", LayoutContainer)
+    runeFrameHooked = true
+end
 
 local function MakeStatusBar(parent, name, r, g, b, yOff, h)
     local bar = CreateFrame("StatusBar", name, parent)
@@ -58,8 +89,6 @@ local function EnsureBars()
     local totalH = (bh * 3) + 2  -- two 1px separators
 
     container = CreateFrame("Frame", "MultiClassContainer", PlayerFrame)
-    container:SetPoint("TOPLEFT", base, "TOPLEFT", 0, 0)
-    container:SetPoint("TOPRIGHT", base, "TOPRIGHT", 0, 0)
     container:SetHeight(totalH)
     container:SetFrameStrata(base:GetFrameStrata())
     container:SetFrameLevel(base:GetFrameLevel())
@@ -81,6 +110,7 @@ local function EnsureBars()
     manaBar   = MakeStatusBar(container, "MultiClassMana",   0.00, 0.55, 1.00, 0,        bh)
     energyBar = MakeStatusBar(container, "MultiClassEnergy", 1.00, 0.95, 0.00, bh+1,    bh)
     rageBar   = MakeStatusBar(container, "MultiClassRage",   1.00, 0.10, 0.10, (bh*2)+2, bh)
+    LayoutContainer()
 end
 
 local function setBar(bar, cur, max)
@@ -98,6 +128,9 @@ end
 
 local function UpdateAll()
     if not container then return end
+    HookRuneFrame()
+    LayoutContainer()
+
     -- Old API: UnitMana(unit, powerType), UnitManaMax(unit, powerType)
     local mCur, mMax = UnitMana("player", PT.MANA)   or 0, UnitManaMax("player", PT.MANA)   or 0
     local rCur, rMax = UnitMana("player", PT.RAGE)   or 0, UnitManaMax("player", PT.RAGE)   or 0
@@ -109,17 +142,15 @@ end
 
 -- If the PlayerFrame reanchors (e.g., some UIs do), keep our container glued to it
 hooksecurefunc(PlayerFrame, "SetPoint", function()
-    if container then
-        container:ClearAllPoints()
-        container:SetPoint("TOPLEFT", PlayerFrameManaBar, "TOPLEFT", 0, 0)
-        container:SetPoint("TOPRIGHT", PlayerFrameManaBar, "TOPRIGHT", 0, 0)
-    end
+    LayoutContainer()
 end)
 
 f:SetScript("OnEvent", function(self, event, arg1)
     if event == "PLAYER_ENTERING_WORLD" then
         KillDefaultManaBar()
         EnsureBars()
+        HookRuneFrame()
+        LayoutContainer()
         UpdateAll()
         return
     end
