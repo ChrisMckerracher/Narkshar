@@ -94,15 +94,6 @@ loader:SetScript("OnEvent", function(_, event, arg1)
       end)
     end
 
-    if DebugBar and DebugBar.new then
-      safe_invoke("DebugBar", function()
-        DebugBar:new():register()
-      end)
-    else
-      safe_invoke("DebugBar missing", function()
-        error("DebugBar table not found; file may not be loading")
-      end)
-    end
   elseif event == "PLAYER_LOGIN" then
     if DEFAULT_CHAT_FRAME then
       DEFAULT_CHAT_FRAME:AddMessage("[Chumbaddon] Readyz for tinkering!")

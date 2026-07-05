@@ -305,13 +305,13 @@ end
 function EliteAffixes:CreateButton(index)
   local parent = TargetFrame or UIParent
   local button = CreateFrame("Button", "ChumbaddonEliteAffixButton" .. index, parent)
-  button:SetWidth(18)
-  button:SetHeight(18)
+  button:SetWidth(26)
+  button:SetHeight(26)
   button:EnableMouse(true)
 
   button.icon = button:CreateTexture(nil, "ARTWORK")
-  button.icon:SetPoint("TOPLEFT", button, "TOPLEFT", 2, -2)
-  button.icon:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 2)
+  button.icon:SetPoint("TOPLEFT", button, "TOPLEFT", 3, -3)
+  button.icon:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -3, 3)
 
   button.border = button:CreateTexture(nil, "OVERLAY")
   button.border:SetAllPoints(button)
@@ -330,18 +330,25 @@ function EliteAffixes:CreateButton(index)
   return button
 end
 
-function EliteAffixes:AnchorButton(button, index)
+function EliteAffixes:AnchorButton(button, index, active_count)
   button:ClearAllPoints()
-  if index == 1 then
-    if TargetFrameBuff1 then
-      button:SetPoint("TOPLEFT", TargetFrameBuff1, "BOTTOMLEFT", 0, -4)
-    elseif TargetFrame then
-      button:SetPoint("TOPLEFT", TargetFrame, "TOPLEFT", 5, -52)
-    else
-      button:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
-    end
+  local spacing = 5
+  local size = 26
+  local offset = (index - 1) * (size + spacing)
+  local level_text = _G and _G.TargetFrameTextureFrameLevelText
+
+  if TargetFrame and TargetFrame.GetFrameLevel and button.SetFrameLevel then
+    button:SetFrameLevel(TargetFrame:GetFrameLevel() + 20)
+  end
+
+  if level_text then
+    button:SetPoint("BOTTOMLEFT", level_text, "TOPLEFT", -5 + offset, 0)
+  elseif TargetFrameHealthBar then
+    button:SetPoint("BOTTOMLEFT", TargetFrameHealthBar, "TOPLEFT", 16 + offset, 28)
+  elseif TargetFrame then
+    button:SetPoint("BOTTOMLEFT", TargetFrame, "TOPLEFT", 60 + offset, -6)
   else
-    button:SetPoint("LEFT", self.buttons[index - 1], "RIGHT", 3, 0)
+    button:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
   end
 end
 
@@ -355,7 +362,7 @@ function EliteAffixes:UpdateDisplay()
     button.category_key = key
     button.category_name = info.name
     button.icon:SetTexture(info.icon)
-    self:AnchorButton(button, index)
+    self:AnchorButton(button, index, #active)
     if should_show then
       button:Show()
     else
