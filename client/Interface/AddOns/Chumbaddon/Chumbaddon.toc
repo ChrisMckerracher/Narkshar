@@ -6,6 +6,7 @@ BareNecessities.lua
 SpellRunes.lua
 IconOverrides.lua
 BoxerAuras.lua
+EliteAffixes.lua
 BossLevels.lua
 TooltipText.lua
 SubclassPicker.lua
