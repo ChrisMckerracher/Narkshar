@@ -1,6 +1,6 @@
--- MultiClass (Wrath 3.3.5a) — replace the PlayerFrame mana bar with three bars
--- 0=MANA, 1=RAGE, 3=ENERGY in 3.3.5
-local PT = { MANA=0, RAGE=1, ENERGY=3 }
+-- MultiClass (Wrath 3.3.5a) — replace the PlayerFrame mana bar with power bars
+-- 0=MANA, 1=RAGE, 3=ENERGY, 6=RUNIC_POWER in 3.3.5
+local PT = { MANA=0, RAGE=1, ENERGY=3, RUNIC_POWER=6 }
 local PIXEL = "Interface\\Buttons\\WHITE8x8"
 
 local f = CreateFrame("Frame")
@@ -8,6 +8,7 @@ f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("UNIT_MANA")
 f:RegisterEvent("UNIT_RAGE")
 f:RegisterEvent("UNIT_ENERGY")
+f:RegisterEvent("UNIT_RUNIC_POWER")
 f:RegisterEvent("UNIT_DISPLAYPOWER")
 
 -- Hide Blizzard's single mana bar (keep the frame art)
@@ -19,9 +20,9 @@ local function KillDefaultManaBar()
     if PlayerFrameManaBarText then PlayerFrameManaBarText:Hide(); PlayerFrameManaBarText.Show = function() end end
 end
 
--- Create our triple bar container exactly where the original sat
+-- Create our power bar container exactly where the original sat
 local container
-local manaBar, energyBar, rageBar
+local manaBar, energyBar, rageBar, runicPowerBar
 local runeFrameHooked = false
 local DK_RUNE_FRAME_BOTTOM_OFFSET = -20
 
@@ -52,6 +53,10 @@ local function HookRuneFrame()
 
     hooksecurefunc(RuneFrame, "SetPoint", LayoutContainer)
     runeFrameHooked = true
+end
+
+local function PowerBarCount()
+    return IsDeathKnight() and 4 or 3
 end
 
 local function MakeStatusBar(parent, name, r, g, b, yOff, h)
@@ -86,7 +91,8 @@ local function EnsureBars()
 
     -- Use Blizzard's actual bar height & width so it looks native
     local bh = base:GetHeight() or 12
-    local totalH = (bh * 3) + 2  -- two 1px separators
+    local barCount = PowerBarCount()
+    local totalH = (bh * barCount) + (barCount - 1)
 
     container = CreateFrame("Frame", "MultiClassContainer", PlayerFrame)
     container:SetHeight(totalH)
@@ -94,22 +100,21 @@ local function EnsureBars()
     container:SetFrameLevel(base:GetFrameLevel())
 
     -- Thin black lines between rows to mimic Blizzard strokes
-    local sep1 = container:CreateTexture(nil, "OVERLAY")
-    sep1:SetTexture(PIXEL); sep1:SetVertexColor(0,0,0,0.8)
-    sep1:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -(bh))
-    sep1:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, -(bh))
-    sep1:SetHeight(1)
-
-    local sep2 = container:CreateTexture(nil, "OVERLAY")
-    sep2:SetTexture(PIXEL); sep2:SetVertexColor(0,0,0,0.8)
-    sep2:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -(bh*2+1))
-    sep2:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, -(bh*2+1))
-    sep2:SetHeight(1)
+    for i = 1, barCount - 1 do
+        local sep = container:CreateTexture(nil, "OVERLAY")
+        sep:SetTexture(PIXEL); sep:SetVertexColor(0,0,0,0.8)
+        sep:SetPoint("TOPLEFT", container, "TOPLEFT", 0, -((bh * i) + (i - 1)))
+        sep:SetPoint("TOPRIGHT", container, "TOPRIGHT", 0, -((bh * i) + (i - 1)))
+        sep:SetHeight(1)
+    end
 
     -- Bars (top→bottom) with Blizzard colors
-    manaBar   = MakeStatusBar(container, "MultiClassMana",   0.00, 0.55, 1.00, 0,        bh)
-    energyBar = MakeStatusBar(container, "MultiClassEnergy", 1.00, 0.95, 0.00, bh+1,    bh)
-    rageBar   = MakeStatusBar(container, "MultiClassRage",   1.00, 0.10, 0.10, (bh*2)+2, bh)
+    manaBar   = MakeStatusBar(container, "MultiClassMana",   0.00, 0.55, 1.00, 0,             bh)
+    energyBar = MakeStatusBar(container, "MultiClassEnergy", 1.00, 0.95, 0.00, bh+1,         bh)
+    rageBar   = MakeStatusBar(container, "MultiClassRage",   1.00, 0.10, 0.10, (bh*2)+2,     bh)
+    if IsDeathKnight() then
+        runicPowerBar = MakeStatusBar(container, "MultiClassRunicPower", 0.00, 0.82, 1.00, (bh*3)+3, bh)
+    end
     LayoutContainer()
 end
 
@@ -138,6 +143,10 @@ local function UpdateAll()
     setBar(manaBar,   mCur, mMax)
     setBar(rageBar,   rCur, rMax)
     setBar(energyBar, eCur, eMax)
+    if runicPowerBar then
+        local rpCur, rpMax = UnitMana("player", PT.RUNIC_POWER) or 0, UnitManaMax("player", PT.RUNIC_POWER) or 0
+        setBar(runicPowerBar, rpCur, rpMax)
+    end
 end
 
 -- If the PlayerFrame reanchors (e.g., some UIs do), keep our container glued to it
