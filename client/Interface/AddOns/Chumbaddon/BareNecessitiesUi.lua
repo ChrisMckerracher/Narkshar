@@ -3,12 +3,13 @@ local unpack = unpack or table.unpack
 local FRAME_WIDTH = 154
 local ROW_HEIGHT = 22
 local ROW_STEP = 24
-local ICON_SIZE = 20
+local ICON_SIZE = 16
 local BAR_LEFT = 28
 local SEGMENT_WIDTH = 23
 local SEGMENT_HEIGHT = 12
 local SEGMENT_GAP = 2
 local BAR_TEXTURE = "Interface\\TARGETINGFRAME\\UI-StatusBar"
+local EMPTY_COLOR = { 0.30, 0.30, 0.30 }
 
 function BareNecessities:CreateUi()
   local frame = CreateFrame("Frame", "BareNecessitiesFrame", UIParent)
@@ -37,12 +38,12 @@ function BareNecessities:CreateResourceRow(parent, resource)
 
   local icon = row:CreateTexture(nil, "ARTWORK")
   icon:SetSize(ICON_SIZE, ICON_SIZE)
-  icon:SetPoint("LEFT", row, "LEFT", 1, 0)
+  icon:SetPoint("LEFT", row, "LEFT", 4, 0)
   icon:SetTexture(resource.icon)
-  icon:SetTexCoord(0.09, 0.91, 0.09, 0.91)
+  icon:SetTexCoord(0.12, 0.88, 0.12, 0.88)
 
   local icon_border = row:CreateTexture(nil, "OVERLAY")
-  icon_border:SetSize(29, 29)
+  icon_border:SetSize(24, 24)
   icon_border:SetPoint("CENTER", icon, "CENTER", 0, 0)
   icon_border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
 
@@ -52,8 +53,8 @@ function BareNecessities:CreateResourceRow(parent, resource)
     local x = BAR_LEFT + ((index - 1) * (SEGMENT_WIDTH + SEGMENT_GAP))
 
     local empty = row:CreateTexture(nil, "BACKGROUND")
-    self:ConfigureSegment(empty, row, x, resource.bar_color)
-    empty:SetAlpha(0.18)
+    self:ConfigureSegment(empty, row, x, EMPTY_COLOR)
+    empty:SetAlpha(0.88)
     empty_segments[index] = empty
 
     local filled = row:CreateTexture(nil, "ARTWORK")
