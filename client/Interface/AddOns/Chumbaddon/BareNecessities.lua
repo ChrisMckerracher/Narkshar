@@ -92,12 +92,9 @@ end
 function BareNecessities:CreateUi()
   local frame = CreateFrame("Frame", "BareNecessitiesFrame", UIParent)
   frame:SetFrameStrata("HIGH")
-  frame:SetSize(280, 104)
+  frame:SetSize(280, 130)
   frame:SetPoint("CENTER", UIParent, "CENTER", 0, 120)
   frame:SetMovable(true)
-  frame:SetResizable(true)
-  frame:SetMinResize(240, 88)
-  frame:SetMaxResize(560, 208)
   frame:EnableMouse(true)
   frame:RegisterForDrag("LeftButton")
   frame:SetClampedToScreen(true)
@@ -117,8 +114,8 @@ function BareNecessities:CreateUi()
   })
   border:SetBackdropBorderColor(0.8, 0.8, 0.8, 0.7)
 
-  local row_height = 22
-  local start_offset = -8
+  local row_height = 26
+  local start_offset = -12
 
   for index, resource in ipairs(self.resource_order) do
     local row = CreateFrame("Frame", nil, frame)
@@ -144,49 +141,10 @@ function BareNecessities:CreateUi()
     self:CreateSegmentDividers(status_bar)
 
     self.ui_rows[resource.key] = {
-      frame = row,
       label = label,
       bar = status_bar,
     }
   end
-
-  local function layout_rows()
-    local available_height = math.max(72, frame:GetHeight() - 16)
-    local current_row_height = available_height / #self.resource_order
-    local bar_width = math.max(100, frame:GetWidth() - 140)
-    local bar_height = math.max(10, math.min(14, current_row_height - 8))
-
-    for index, resource in ipairs(self.resource_order) do
-      local ui_row = self.ui_rows[resource.key]
-      ui_row.frame:SetSize(frame:GetWidth() - 20, current_row_height)
-      ui_row.frame:ClearAllPoints()
-      ui_row.frame:SetPoint(
-        "TOPLEFT",
-        frame,
-        "TOPLEFT",
-        10,
-        -8 - ((index - 1) * current_row_height)
-      )
-      ui_row.bar:SetSize(bar_width, bar_height)
-    end
-  end
-
-  local resize_handle = CreateFrame("Button", nil, frame)
-  resize_handle:SetSize(14, 14)
-  resize_handle:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -2, 2)
-
-  local resize_texture = resize_handle:CreateTexture(nil, "OVERLAY")
-  resize_texture:SetAllPoints()
-  resize_texture:SetTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
-  resize_handle:SetScript("OnMouseDown", function()
-    frame:StartSizing("BOTTOMRIGHT")
-  end)
-  resize_handle:SetScript("OnMouseUp", function()
-    frame:StopMovingOrSizing()
-  end)
-
-  frame:SetScript("OnSizeChanged", layout_rows)
-  layout_rows()
 
   self.frame = frame
   frame:Show()
@@ -196,7 +154,7 @@ end
 function BareNecessities:CreateSegmentDividers(status_bar)
   status_bar.segmentDividers = {}
 
-  local function layout()
+  local function layout() 
     local width = status_bar:GetWidth()
     local height = status_bar:GetHeight()
     for index = 1, self.segment_count - 1 do
