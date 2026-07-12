@@ -183,7 +183,7 @@ function BareNecessities:GetDisplayLevel(resource, value)
   if ratio == nil then
     return nil
   end
-  return math.ceil(ratio * 5)
+  return math.floor(ratio * 5)
 end
 
 function BareNecessities:GetState(ratio)
