@@ -1,139 +1,96 @@
 local unpack = unpack or table.unpack
 
-local COLORS = {
-  healthy = { 0.85, 0.86, 0.80 },
-  warning = { 1.00, 0.72, 0.18 },
-  critical = { 1.00, 0.22, 0.18 },
-  unavailable = { 0.43, 0.43, 0.43 },
+local GAUGE_SIZE = 54
+local GAUGE_STEP = 56
+local RING_TEXTURE = "Interface\\AddOns\\Chumbaddon\\Media\\SurvivalRing"
+local RING_CELLS = {
+  { 0 / 8, 1 / 8, 0, 1 },
+  { 1 / 8, 2 / 8, 0, 1 },
+  { 2 / 8, 3 / 8, 0, 1 },
+  { 3 / 8, 4 / 8, 0, 1 },
+  { 4 / 8, 5 / 8, 0, 1 },
 }
-
-local function set_font_color(font_string, color)
-  font_string:SetTextColor(color[1], color[2], color[3])
-end
 
 function BareNecessities:CreateUi()
   local frame = CreateFrame("Frame", "BareNecessitiesFrame", UIParent)
   frame:SetFrameStrata("HIGH")
-  frame:SetSize(264, 184)
+  frame:SetSize(GAUGE_STEP * 4, GAUGE_SIZE)
   frame:SetMovable(true)
   frame:EnableMouse(true)
-  frame:RegisterForDrag("LeftButton")
   frame:SetClampedToScreen(true)
-  frame:SetBackdrop({
-    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-    tile = true,
-    tileSize = 16,
-    edgeSize = 13,
-    insets = { left = 3, right = 3, top = 3, bottom = 3 },
-  })
-  frame:SetBackdropColor(0.03, 0.035, 0.04, 0.94)
-  frame:SetBackdropBorderColor(0.54, 0.46, 0.32, 0.95)
+  self.frame = frame
+  self:AttachDragScripts(frame)
 
-  frame:SetScript("OnDragStart", function(panel)
-    if not self.settings.locked then
-      panel:StartMoving()
-    end
-  end)
-  frame:SetScript("OnDragStop", function(panel)
-    panel:StopMovingOrSizing()
-    self:SavePosition()
-  end)
-
-  local title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-  title:SetPoint("TOPLEFT", frame, "TOPLEFT", 13, -11)
-  title:SetText("SURVIVAL")
-  title:SetTextColor(0.91, 0.73, 0.38)
-
-  local summary = frame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  summary:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -2)
-  summary:SetPoint("RIGHT", frame, "RIGHT", -12, 0)
-  summary:SetJustifyH("LEFT")
-  summary:SetText("Waiting for status...")
-  self.summary = summary
-
-  for index, resource in ipairs(self.resource_order) do
-    self.ui_rows[resource.key] = self:CreateResourceRow(frame, resource, index)
+  for _, resource in ipairs(self.resource_order) do
+    self.ui_rows[resource.key] = self:CreateGauge(frame, resource)
   end
 
-  self.frame = frame
   self:RestorePosition()
   self:RefreshVisibility()
   self:RefreshDisplays()
 end
 
-function BareNecessities:CreateResourceRow(parent, resource, index)
-  local row = CreateFrame("Frame", nil, parent)
-  row:SetSize(240, 32)
-  row:SetPoint("TOPLEFT", parent, "TOPLEFT", 12, -43 - ((index - 1) * 33))
-  row:EnableMouse(true)
+function BareNecessities:CreateGauge(parent, resource)
+  local gauge = CreateFrame("Frame", nil, parent)
+  gauge:SetSize(GAUGE_SIZE, GAUGE_SIZE)
+  gauge:EnableMouse(true)
+  self:AttachDragScripts(gauge)
 
-  local wash = row:CreateTexture(nil, "BACKGROUND")
-  wash:SetAllPoints()
-  wash:SetTexture(1, 1, 1, 0.035)
-
-  local icon = row:CreateTexture(nil, "ARTWORK")
-  icon:SetSize(25, 25)
-  icon:SetPoint("LEFT", row, "LEFT", 2, 0)
+  local icon = gauge:CreateTexture(nil, "ARTWORK")
+  icon:SetSize(27, 27)
+  icon:SetPoint("CENTER", gauge, "CENTER", 0, 0)
   icon:SetTexture(resource.icon)
-  icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+  icon:SetTexCoord(0.09, 0.91, 0.09, 0.91)
 
-  local icon_border = row:CreateTexture(nil, "OVERLAY")
-  icon_border:SetSize(36, 36)
-  icon_border:SetPoint("CENTER", icon, "CENTER", 0, 0)
-  icon_border:SetTexture("Interface\\Buttons\\UI-Quickslot2")
+  local empty_segments = {}
+  local filled_segments = {}
+  for index, coordinates in ipairs(RING_CELLS) do
+    local empty = gauge:CreateTexture(nil, "BACKGROUND")
+    self:ConfigureRingSegment(empty, coordinates)
+    empty:SetVertexColor(0.18, 0.18, 0.18)
+    empty:SetAlpha(0.72)
+    empty_segments[index] = empty
 
-  local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-  label:SetPoint("TOPLEFT", row, "TOPLEFT", 35, -1)
-  label:SetText(resource.label)
-  label:SetTextColor(0.94, 0.92, 0.85)
+    local filled = gauge:CreateTexture(nil, "OVERLAY")
+    self:ConfigureRingSegment(filled, coordinates)
+    filled:SetVertexColor(unpack(resource.bar_color))
+    filled:SetBlendMode("ADD")
+    filled_segments[index] = filled
+  end
 
-  local state = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  state:SetPoint("LEFT", label, "RIGHT", 7, 0)
-  state:SetText("Unavailable")
-
-  local value = row:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-  value:SetPoint("TOPRIGHT", row, "TOPRIGHT", -2, -1)
-  value:SetJustifyH("RIGHT")
-  value:SetText("--")
-
-  local bar = CreateFrame("StatusBar", nil, row)
-  bar:SetStatusBarTexture("Interface\\TARGETINGFRAME\\UI-StatusBar")
-  bar:SetMinMaxValues(0, resource.max_value)
-  bar:SetValue(0)
-  bar:SetSize(201, 8)
-  bar:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 35, 4)
-
-  local bar_bg = bar:CreateTexture(nil, "BACKGROUND")
-  bar_bg:SetAllPoints()
-  bar_bg:SetTexture(0.025, 0.025, 0.025, 0.92)
-
-  self:CreateSegmentDividers(bar)
-  row:SetScript("OnEnter", function()
-    self:ShowResourceTooltip(row, resource)
+  gauge:SetScript("OnEnter", function()
+    self:ShowResourceTooltip(gauge, resource)
   end)
-  row:SetScript("OnLeave", function()
+  gauge:SetScript("OnLeave", function()
     GameTooltip:Hide()
   end)
 
   return {
-    frame = row,
+    frame = gauge,
     icon = icon,
-    label = label,
-    state = state,
-    value = value,
-    bar = bar,
-    wash = wash,
+    empty_segments = empty_segments,
+    filled_segments = filled_segments,
   }
 end
 
-function BareNecessities:CreateSegmentDividers(bar)
-  for index = 1, 4 do
-    local divider = bar:CreateTexture(nil, "OVERLAY")
-    divider:SetTexture(0.02, 0.02, 0.02, 0.9)
-    divider:SetSize(1, 8)
-    divider:SetPoint("LEFT", bar, "LEFT", (bar:GetWidth() / 5) * index, 0)
-  end
+function BareNecessities:ConfigureRingSegment(texture, coordinates)
+  texture:SetSize(52, 52)
+  texture:SetPoint("CENTER", texture:GetParent(), "CENTER", 0, 0)
+  texture:SetTexture(RING_TEXTURE)
+  texture:SetTexCoord(unpack(coordinates))
+end
+
+function BareNecessities:AttachDragScripts(target)
+  target:RegisterForDrag("LeftButton")
+  target:SetScript("OnDragStart", function()
+    if not self.settings.locked then
+      self.frame:StartMoving()
+    end
+  end)
+  target:SetScript("OnDragStop", function()
+    self.frame:StopMovingOrSizing()
+    self:SavePosition()
+  end)
 end
 
 function BareNecessities:RefreshDisplays()
@@ -141,64 +98,36 @@ function BareNecessities:RefreshDisplays()
     return
   end
 
-  local lowest_resource
-  local lowest_ratio
+  local visible_count = 0
   for _, resource in ipairs(self.resource_order) do
     local value = self.values[resource.key]
-    local ratio = self:GetRatio(resource, value)
-    self:UpdateRow(resource, self.ui_rows[resource.key], value, ratio)
-    if ratio and (not lowest_ratio or ratio < lowest_ratio) then
-      lowest_resource = resource
-      lowest_ratio = ratio
+    local gauge = self.ui_rows[resource.key]
+    if value == nil then
+      gauge.frame:Hide()
+    else
+      gauge.frame:ClearAllPoints()
+      gauge.frame:SetPoint("LEFT", self.frame, "LEFT", visible_count * GAUGE_STEP, 0)
+      gauge.frame:Show()
+      self:UpdateGauge(resource, gauge, value)
+      visible_count = visible_count + 1
     end
   end
 
-  self:UpdateSummary(lowest_resource, lowest_ratio)
+  self.frame:SetWidth(math.max(1, visible_count * GAUGE_STEP))
 end
 
-function BareNecessities:UpdateRow(resource, row, value, ratio)
-  local state_text, severity = self:GetState(ratio)
-  local state_color = COLORS[severity]
-  row.bar:SetMinMaxValues(0, resource.max_value)
-  row.bar:SetValue(value or 0)
-  row.value:SetText(self:FormatValue(resource, value))
-  row.state:SetText(state_text)
-  set_font_color(row.state, state_color)
-
-  if severity == "warning" or severity == "critical" then
-    row.bar:SetStatusBarColor(unpack(COLORS[severity]))
-    row.wash:SetTexture(unpack(COLORS[severity]))
-    row.wash:SetAlpha(severity == "critical" and 0.12 or 0.07)
-  else
-    row.bar:SetStatusBarColor(unpack(resource.bar_color))
-    row.wash:SetTexture(1, 1, 1, severity == "unavailable" and 0.018 or 0.035)
+function BareNecessities:UpdateGauge(resource, gauge, value)
+  local level = self:GetDisplayLevel(resource, value) or 0
+  for index, segment in ipairs(gauge.filled_segments) do
+    if index <= level then
+      segment:Show()
+    else
+      segment:Hide()
+    end
   end
 
-  row.icon:SetDesaturated(severity == "unavailable")
-  row.icon:SetAlpha(severity == "unavailable" and 0.38 or 1)
-  row.value:SetTextColor(unpack(state_color))
-end
-
-function BareNecessities:UpdateSummary(resource, ratio)
-  if not resource or ratio == nil then
-    self.summary:SetText("Waiting for status...")
-    set_font_color(self.summary, COLORS.unavailable)
-  elseif ratio <= 0 then
-    self.summary:SetText(resource.urgent_text)
-    set_font_color(self.summary, COLORS.critical)
-  elseif ratio < 0.4 then
-    self.summary:SetText(resource.label .. " is critical")
-    set_font_color(self.summary, COLORS.critical)
-  elseif ratio < 0.6 then
-    self.summary:SetText(resource.label .. " is running low")
-    set_font_color(self.summary, COLORS.warning)
-  elseif ratio < 0.8 then
-    self.summary:SetText("Keep an eye on " .. string.lower(resource.label))
-    set_font_color(self.summary, COLORS.healthy)
-  else
-    self.summary:SetText("All needs are steady")
-    set_font_color(self.summary, COLORS.healthy)
-  end
+  gauge.icon:SetDesaturated(level == 0)
+  gauge.icon:SetAlpha(level == 0 and 0.52 or 1)
 end
 
 function BareNecessities:ShowResourceTooltip(owner, resource)
@@ -255,10 +184,10 @@ function BareNecessities:HandleSlashCommand(message)
     self.settings.visible = false
   elseif command == "lock" then
     self.settings.locked = true
-    self:Print("HUD locked.")
+    self:Print("Gauges locked.")
   elseif command == "unlock" then
     self.settings.locked = false
-    self:Print("HUD unlocked; drag it with the left mouse button.")
+    self:Print("Gauges unlocked; drag any icon to move them.")
   elseif command == "reset" then
     self.settings.point = nil
     self.settings.relative_point = nil
@@ -266,7 +195,7 @@ function BareNecessities:HandleSlashCommand(message)
     self.settings.y = nil
     self.settings.visible = true
     self:RestorePosition()
-    self:Print("HUD position reset.")
+    self:Print("Gauge position reset.")
   elseif command == "" then
     self.settings.visible = not self.settings.visible
   else

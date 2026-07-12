@@ -178,6 +178,14 @@ function BareNecessities:GetRatio(resource, value)
   return self:ClampValue(value, resource.max_value) / resource.max_value
 end
 
+function BareNecessities:GetDisplayLevel(resource, value)
+  local ratio = self:GetRatio(resource, value)
+  if ratio == nil then
+    return nil
+  end
+  return math.ceil(ratio * 5)
+end
+
 function BareNecessities:GetState(ratio)
   if ratio == nil then
     return "Unavailable", "unavailable"
