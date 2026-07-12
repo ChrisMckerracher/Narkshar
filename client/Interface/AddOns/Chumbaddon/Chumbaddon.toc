@@ -1,10 +1,8 @@
 ## Interface: 30300
 ## Title: Chumbaddon
 ## Notes: Utility features for 3.3.5 client tweaks
-## SavedVariables: ChumbaddonDB
 MultiClass.lua
 BareNecessities.lua
-BareNecessitiesUi.lua
 SpellRunes.lua
 IconOverrides.lua
 BoxerAuras.lua
