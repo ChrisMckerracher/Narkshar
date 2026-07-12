@@ -6,37 +6,37 @@ local unpack = unpack or table.unpack
 local RESOURCE_DEFINITIONS = {
   {
     key = "hunger",
-    label = "Fullness",
+    label = "Hunger",
     urgent_text = "Eat something now",
     icon = "Interface\\Icons\\INV_Misc_Food_15",
-    bar_color = { 0.91, 0.58, 0.22 },
+    bar_color = { 0.80, 0.52, 0.26 },
     max_value = 5,
     hint = "Eat food to restore fullness.",
   },
   {
     key = "thirst",
-    label = "Hydration",
+    label = "Thirst",
     urgent_text = "Drink something now",
     icon = "Interface\\Icons\\INV_Drink_01",
-    bar_color = { 0.20, 0.58, 0.94 },
+    bar_color = { 0.26, 0.52, 0.90 },
     max_value = 5,
     hint = "Drink to restore hydration.",
   },
   {
     key = "fatigue",
-    label = "Energy",
+    label = "Fatigue",
     urgent_text = "Get some rest now",
     icon = "Interface\\Icons\\Spell_Nature_Sleep",
-    bar_color = { 0.63, 0.52, 0.91 },
+    bar_color = { 0.58, 0.64, 0.86 },
     max_value = 50,
     hint = "Rest in an inn, city, or near a fire to recover energy.",
   },
   {
     key = "damage",
-    label = "Condition",
+    label = "Damage",
     urgent_text = "Treat your wounds now",
     icon = "Interface\\Icons\\INV_Misc_Bandage_15",
-    bar_color = { 0.85, 0.35, 0.32 },
+    bar_color = { 0.86, 0.18, 0.18 },
     max_value = 5,
     hint = "Use bandages to improve your condition.",
   },
@@ -86,6 +86,9 @@ function BareNecessities:InitializeSettings()
   end
   if self.settings.locked == nil then
     self.settings.locked = false
+  end
+  if self.settings.scale == nil then
+    self.settings.scale = 1
   end
 end
 
